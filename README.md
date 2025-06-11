@@ -79,13 +79,15 @@ Relax and enjoy your mix! :)
 
 ### TODOS and possible bugs
 
-So far, everything should work fine, except Crossfade (which is a TODO).
+So far, everything should work fine, including Crossfade.
 The random playing times can act funny.
 There is no GUI, and no possibility of changing files "on the fly". Feel free to fork and continue this project. ^^
 
 ## Authors
 
 * **Philooz** - *Initial work* - [Philooz](https://github.com/Philooz)
+* **luna-system** - *Refactoring* - [luna-system](https://github.com/luna-system)
+* **Pithlit** - *Crossfading* - [Pithlit](https://github.com/piglit)
 
 ## License
 
