@@ -29,10 +29,8 @@ unit_duration_map = {
 }
 
 def chop_interval(num, prec, max, len):
-	values = []
 	num += 1
-	for i in range(num):
-		values.append(random.randint(0, prec))
+	values = [random.randint(0, prec) for _ in range(num)]
 	norm = sum(values)
 	anc = 0
 	max_ar = max - 1.5*len*num
@@ -48,9 +46,11 @@ def chop_interval(num, prec, max, len):
 class Channel():
 	def __init__(self, channel_id, sound_id, name = "", volume = 100, random = False, random_counter = 1, random_unit = "1h", mute = False, balance = 0):
 		try:
-			self.sound_object = pygame.mixer.Sound("sounds/{}.ogg".format(sound_id))
-		except:
-			print('Error while loading sound "sounds/{}.ogg". Did you convert it to ogg?'.format(sound_id))
+			self.sound_object = pygame.mixer.Sound(f"sounds/{sound_id}.ogg")
+		except Exception:
+			print(
+				f'Error while loading sound "sounds/{sound_id}.ogg". Did you convert it to ogg?'
+			)
 			sys.exit()
 		self.channel_object = pygame.mixer.Channel(channel_id)
 		self.name = name
@@ -102,44 +102,47 @@ class Channel():
 			self.channel_object.play(self.sound_object)
 
 	def tick(self):
-		if(self.random and not self.mute):
-			if(len(self.play_at) > 0):
-				self.current_tick += 1
-				ref = self.play_at[0]
-				if(self.current_tick > ref):
-					#print("Playing : {}".format(self.play_at))
-					self.play_at.pop(0)
-					if(len(self.play_at) >= 1):
-						self.play(True)
-			else:
-				self.current_tick = 0
-				self.compute_next_ticks()
+		if not self.random or self.mute:
+			return
+		if(len(self.play_at) > 0):
+			self.current_tick += 1
+			ref = self.play_at[0]
+			if(self.current_tick > ref):
+				#print("Playing : {}".format(self.play_at))
+				self.play_at.pop(0)
+				if(len(self.play_at) >= 1):
+					self.play(True)
+		else:
+			self.current_tick = 0
+			self.compute_next_ticks()
 				#print("Recomputed : {}".format(self.play_at))
 
 def load_file(xml_file):
 	obj = untangle.parse(xml_file)
 	ls = []
 	for chan_num in range(1,9):
-		channel = getattr(obj.audio_template, "channel{}".format(chan_num))
-		dic = {}
-		dic["sound_id"] = channel.id_audio.cdata
-		dic["random"] = (channel.random.cdata == "true")
-		dic["mute"] = (channel.mute.cdata == "true")
-		dic["name"] = channel.name_audio.cdata
-		dic["volume"] = channel.volume.cdata
-		dic["balance"] = int(channel.balance.cdata)
-		dic["random_counter"] = int(channel.random_counter.cdata)
-		dic["random_unit"] = channel.random_unit.cdata
+		channel = getattr(obj.audio_template, f"channel{chan_num}")
+		dic = {
+			"sound_id": channel.id_audio.cdata,
+			"random": channel.random.cdata == "true",
+			"mute": channel.mute.cdata == "true",
+			"name": channel.name_audio.cdata,
+			"volume": channel.volume.cdata,
+			"balance": int(channel.balance.cdata),
+			"random_counter": int(channel.random_counter.cdata),
+			"random_unit": channel.random_unit.cdata,
+		}
 		ls.append(dic)
 	return ls
 
 def bootstrap_chanlist(chans_to_load):
-	channels = []
-	for(c_id, c_val) in enumerate(chans_to_load):
-		if c_val["sound_id"] not in ('','0'):
-			channels.append(Channel(c_id, **c_val))
+	channels = [
+		Channel(c_id, **c_val)
+		for c_id, c_val in enumerate(chans_to_load)
+		if c_val["sound_id"] not in ('', '0')
+	]
 	for channel in channels:
-		print('Loaded {}.'.format(channel))
+		print(f'Loaded {channel}.')
 	for channel in channels:
 		channel.play()
 	print('Press CTRL+C to exit.')

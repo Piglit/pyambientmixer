@@ -29,14 +29,13 @@ def download_file(url, save = False, filename = None):
 	if(len(url.strip()) == 0):
 		return
 	response = requests.get(url)
-	if(save):
-		if filename is None:
-			filename = url.split('/')[-1]
-		with open(filename, "wb") as file:
-			file.write(response.content)
-		print("Saved {} as {}.".format(url, filename))
-	else:
+	if not save:
 		return response.text
+	if filename is None:
+		filename = url.split('/')[-1]
+	with open(filename, "wb") as file:
+		file.write(response.content)
+	print(f"Saved {url} as {filename}.")
 
 def get_correct_file(url, filename = None):
 	if(filename is None):
@@ -45,19 +44,19 @@ def get_correct_file(url, filename = None):
 			page = download_file(url)
 			val = re_js_reg.findall(str(page))[0]
 			url = template_url + val
-	fname = os.path.join("presets", "{}.xml".format(filename))
+	fname = os.path.join("presets", f"{filename}.xml")
 	download_file(url, True, fname)
 	return fname
 
 def download_sounds(xml_file):
 	obj = untangle.parse(xml_file)
 	for chan_num in range(1,9):
-		channel = getattr(obj.audio_template, "channel{}".format(chan_num))
+		channel = getattr(obj.audio_template, f"channel{chan_num}")
 		new_filename = channel.id_audio.cdata
 		url = channel.url_audio.cdata
 		ext = url.split('.')[-1]
-		filename = os.path.join("sounds", new_filename + "." + ext)
-		filename_ogg = os.path.join("sounds", new_filename + ".ogg")
+		filename = os.path.join("sounds", f"{new_filename}.{ext}")
+		filename_ogg = os.path.join("sounds", f"{new_filename}.ogg")
 		if not(os.path.exists(filename) or os.path.exists(filename_ogg)):
 			download_file(url, True, filename)
 
