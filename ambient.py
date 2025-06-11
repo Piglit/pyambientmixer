@@ -1,18 +1,15 @@
+#!/usr/bin/env python3
 """ambient.py - plays an ambient mix with pygame. Mash CTRL+C to quit.
  
 Usage:
   ambient.py <file>
- 
-Options:
-  <file>             XML file of the ambient mix to play. Make sure you have the correct "sounds/" folder in your current working directory.
-  -h --help          Show this help message.
-
 """
-__author__      = "Philooz"
+__author__      = "Philooz, luna-system, Pithlit"
 __copyright__   = "2017 GPL"
 
 import random, sys
-import pygame, untangle
+import pygame
+import xml.etree.ElementTree as ET
 
 pygame.mixer.init()
 pygame.mixer.pre_init(44100, -16, 2, 2048)
@@ -44,51 +41,54 @@ def chop_interval(num, prec, max, len):
 	return values
 
 class Channel():
-	def __init__(self, channel_id, sound_id, name = "", volume = 100, random = False, random_counter = 1, random_unit = "1h", mute = False, balance = 0):
+	def __init__(self, channel_id, id_audio, name_audio = "", volume = "100", random = "false", random_counter = "1", random_unit = "1h", mute = "false", balance = "0", crossfade = "false"):
 		try:
-			self.sound_object = pygame.mixer.Sound(f"sounds/{sound_id}.ogg")
+			self.sound_object = pygame.mixer.Sound(f"sounds/{id_audio}.ogg")
 		except Exception:
 			print(
-				f'Error while loading sound "sounds/{sound_id}.ogg". Did you convert it to ogg?'
+				f'Error while loading sound "sounds/{id_audio}.ogg". Did you convert it to ogg?'
 			)
 			sys.exit()
 		self.channel_object = pygame.mixer.Channel(channel_id)
-		self.name = name
+		self.name = name_audio
 		#Normalize volume
-		self.volume = volume
-		self.sound_object.set_volume(int(volume)/100.0)
+		self.volume = int(volume)
+		self.sound_object.set_volume(self.volume/100.0)
 		#Adjust balance
-		self.balance = balance
-		self.left_volume = 1.0 if (balance <= 0) else (1.0-float(balance)/100)
-		self.right_volume = 1.0 if (balance >= 0) else (1.0+float(balance)/100)
+		self.balance = int(balance)
+		self.left_volume = 1.0 if (self.balance <= 0) else (1.0-self.balance/100)
+		self.right_volume = 1.0 if (self.balance >= 0) else (1.0+self.balance/100)
 		self.channel_object.set_volume(self.left_volume, self.right_volume)
 		#Set random
 		self.channel_id = channel_id
-		self.sound_id = sound_id
-		self.random = random
-		self.random_counter = random_counter
+		self.id_audio = id_audio
+		self.random = random == "true"
+		self.random_counter = int(random_counter)
 		self.random_unit = random_unit
 		self.play_at = []
 		self.current_tick = 0
-		self.mute = mute
+		self.mute = mute == "true"
+		self.crossfade = crossfade == "true"
 	
 	def __repr__(self):
 		if(self.random):
-			return "Channel {channel_id} : {name} (random {ran} per {unit}), {sound_id}.ogg (volume {vol}, balance {bal})".format(
+			return "Channel {channel_id} : {name} (random {ran} per {unit}), {id_audio}.ogg (volume {vol}, balance {bal}, crossfade {crossfade})".format(
 			channel_id=self.channel_id,
 			name=self.name,
-			sound_id=self.sound_id,
+			id_audio=self.id_audio,
 			vol=self.volume,
 			bal=self.balance,
 			ran=self.random_counter,
-			unit=self.random_unit)
+			unit=self.random_unit,
+			crossfade = self.crossfade)
 		else:
-			return "Channel {channel_id} : {name} (looping), {sound_id}.ogg (volume {vol}, balance {bal})".format(
+			return "Channel {channel_id} : {name} (looping), {id_audio}.ogg (volume {vol}, balance {bal}, crossfade {crossfade})".format(
 			channel_id=self.channel_id,
 			name=self.name,
-			sound_id=self.sound_id,
+			id_audio=self.id_audio,
 			vol=self.volume,
-			bal=self.balance)
+			bal=self.balance,
+			crossfade = self.crossfade)
 
 	def compute_next_ticks(self):
 		val = unit_duration_map[self.random_unit]
@@ -117,29 +117,24 @@ class Channel():
 			self.compute_next_ticks()
 				#print("Recomputed : {}".format(self.play_at))
 
-def load_file(xml_file):
-	obj = untangle.parse(xml_file)
-	ls = []
-	for chan_num in range(1,9):
-		channel = getattr(obj.audio_template, f"channel{chan_num}")
-		dic = {
-			"sound_id": channel.id_audio.cdata,
-			"random": channel.random.cdata == "true",
-			"mute": channel.mute.cdata == "true",
-			"name": channel.name_audio.cdata,
-			"volume": channel.volume.cdata,
-			"balance": int(channel.balance.cdata),
-			"random_counter": int(channel.random_counter.cdata),
-			"random_unit": channel.random_unit.cdata,
-		}
-		ls.append(dic)
-	return ls
+def parseXML(xml_file):
+	tree = ET.parse(xml_file)
+	root = tree.getroot()
+	assert root.tag == "audio_template"
+	channels = []
+	for channel in root:
+		if channel.tag.startswith("channel"):
+			dic = {}
+			for attribute in channel:
+				dic[attribute.tag] = attribute.text
+			channels.append(dic)
+	return channels
 
 def bootstrap_chanlist(chans_to_load):
 	channels = [
 		Channel(c_id, **c_val)
 		for c_id, c_val in enumerate(chans_to_load)
-		if c_val["sound_id"] not in ('', '0')
+		if c_val["id_audio"] not in ('', '0')
 	]
 	for channel in channels:
 		print(f'Loaded {channel}.')
@@ -151,7 +146,9 @@ def bootstrap_chanlist(chans_to_load):
 		for channel in channels:
 			channel.tick()
 
-from docopt import docopt
+import argparse
 if __name__ == "__main__":
-	arguments = docopt(__doc__, version = '0.1ß')
-	bootstrap_chanlist(load_file(arguments.get('<file>')))
+	parser = argparse.ArgumentParser()
+	parser.add_argument("file", help="XML file of the ambient mix to play. Make sure you have the correct 'sounds/' folder in your current working directory.")
+	args = parser.parse_args()
+	bootstrap_chanlist(parseXML(args.file))

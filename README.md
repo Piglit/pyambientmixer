@@ -8,7 +8,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-You'll need python3 installed on your system, with the python packages untangle, pygame, requests and docopt.
+You'll need python3 installed on your system, with the python packages pygame, and requests.
 
 If you're on a 'bian system, you can install python3 and pip with
 
@@ -16,7 +16,7 @@ If you're on a 'bian system, you can install python3 and pip with
 
 I recommend pip to install the required modules. Install them with
 
-```sudo pip3 install requests pygame untangle docopt```
+```sudo pip3 install requests pygame```
 
 You'll also need an OGG encoder, as I went with pygame (and because it's a free format).
 I recommend the easy-to-use dir2ogg utility, which encodes a whole directory into ogg.
