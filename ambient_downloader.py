@@ -8,6 +8,7 @@ __author__      = "Philooz, luna-system, Pithlit"
 __copyright__   = "2017 GPL"
 
 import re, os
+import subprocess
 
 import requests
 import xml.etree.ElementTree as ET
@@ -75,3 +76,4 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	makedirs()
 	download_sounds(get_correct_file(args.url))
+	subprocess.run(["dir2ogg", "sounds/", "--delete-input"])
