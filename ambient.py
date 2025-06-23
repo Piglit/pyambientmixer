@@ -146,17 +146,20 @@ def bootstrap_chanlist(chans_to_load):
 	]
 	for channel in channels:
 		print(f'Loaded {channel}.')
-	for channel in channels:
 		channel.play()
-	print('Press CTRL+C to exit.')
-	while True:
-		clock.tick(CLOCK_TICKER)
-		for channel in channels:
-			channel.tick()
+	return channels
 
-import argparse
+def tick_channels(channels):
+	clock.tick(CLOCK_TICKER)
+	for channel in channels:
+		channel.tick()
+
 if __name__ == "__main__":
+	import argparse
 	parser = argparse.ArgumentParser()
 	parser.add_argument("file", help="XML file of the ambient mix to play. Make sure you have the correct 'sounds/' folder in your current working directory.")
 	args = parser.parse_args()
-	bootstrap_chanlist(parseXML(args.file))
+	channels = bootstrap_chanlist(parseXML(args.file))
+	print('Press CTRL+C to exit.')
+	while True:
+		tick_channels(channels)
